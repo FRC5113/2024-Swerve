@@ -1,0 +1,3 @@
+[robotpybuild]
+playingwithfusion = playingwithfusion.pkgcfg
+playingwithfusion_driver = playingwithfusion._pwf_driver.pkgcfg

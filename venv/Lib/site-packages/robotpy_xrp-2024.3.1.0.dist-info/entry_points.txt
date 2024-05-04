@@ -1,0 +1,6 @@
+[robotpybuild]
+xrp = xrp.pkgcfg
+xrp_ext = xrp.extension.pkgcfg
+
+[robotpysimext]
+xrp = xrp.extension

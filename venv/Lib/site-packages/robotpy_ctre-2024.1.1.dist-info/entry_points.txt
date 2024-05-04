@@ -1,0 +1,14 @@
+[robotpybuild]
+ctre = phoenix5.pkgcfg
+ctre_api_cpp_sim = phoenix5._api_cpp_sim.pkgcfg
+ctre_cci_sim = phoenix5._cci_sim.pkgcfg
+ctre_simcancoder = phoenix5._simcancoder.pkgcfg
+ctre_simpigeonimu = phoenix5._simpigeonimu.pkgcfg
+ctre_simprocancoder = phoenix5._simprocancoder.pkgcfg
+ctre_simpropigeon2 = phoenix5._simpropigeon2.pkgcfg
+ctre_simprotalonfx = phoenix5._simprotalonfx.pkgcfg
+ctre_simtalonfx = phoenix5._simtalonfx.pkgcfg
+ctre_simtalonsrx = phoenix5._simtalonsrx.pkgcfg
+ctre_simvictorspx = phoenix5._simvictorspx.pkgcfg
+ctre_tools_sim = phoenix5._tools_sim.pkgcfg
+ctre_wpiapi_cpp_sim = phoenix5._wpiapi_cpp_sim.pkgcfg
