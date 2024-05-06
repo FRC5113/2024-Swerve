@@ -10,6 +10,7 @@ import wpimath.kinematics
 import wpimath.geometry
 import wpimath.controller
 import wpimath.trajectory
+import phoenix6
 
 kWheelRadius = 0.0508
 kEncoderResolution = 4096
@@ -36,11 +37,11 @@ class SwerveModule:
         :param turningEncoderChannelA: DIO input for the turning encoder channel A
         :param turningEncoderChannelB: DIO input for the turning encoder channel B
         """
-        self.driveMotor = wpilib.PWMSparkMax(driveMotorChannel)
-        self.turningMotor = wpilib.PWMSparkMax(turningMotorChannel)
+        self.driveMotor = phoenix6.hardware.TalonFX(driveMotorChannel)
+        self.turningMotor = phoenix6.hardware.TalonFX(turningMotorChannel)
 
-        self.driveEncoder = wpilib.Encoder(driveEncoderChannelA, driveEncoderChannelB)
-        self.turningEncoder = wpilib.Encoder(
+        self.driveEncoder = phoenix6.hardware.TalonFX(driveEncoderChannelA, driveEncoderChannelB)
+        self.turningEncoder = phoenix6.hardware.CANcoder(
             turningEncoderChannelA, turningEncoderChannelB
         )
 
@@ -120,7 +121,7 @@ class SwerveModule:
 
         # Calculate the drive output from the drive PID controller.
         driveOutput = self.drivePIDController.calculate(
-            self.driveEncoder.getRate(), state.speed
+            self.driveEncoder.get_velocity(), state.speed
         )
 
         driveFeedforward = self.driveFeedforward.calculate(state.speed)
