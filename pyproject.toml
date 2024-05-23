@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "swervepy"
+version = "1.5.0"
+description = "Swerve drive library for FRC"
+authors = ["Ethan Wall <ethanhwall07@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/EWall25/swervepy"
+keywords = ["frc", "swerve-drive"]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+robotpy = {version = ">=2024.2.1,<2025", extras = ["rev", "phoenix5", "pathplannerlib", "commands2"]}
+Pint = "^0.20.1"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+black = "^23.12.1"
+mkdocs = "^1.5.3"
+mkdocstrings = {extras = ["python"], version = "^0.24.0"}
+mkdocs-material = "^9.5.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
