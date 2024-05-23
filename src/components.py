@@ -11,7 +11,7 @@ from constants import PHYS, MECH, ELEC, OP, SW
 from swervepy.impl import (
     # Replace these classes with the ones that apply to your robot
     DummyGyro,
-    AbsoluteDutyCycleEncoder,
+    AbsoluteCANCoder,
     CoaxialSwerveModule,
     Falcon500CoaxialDriveComponent,
     Falcon500CoaxialAzimuthComponent,
@@ -22,7 +22,7 @@ from swervepy.impl import (
 drive_component_class = Falcon500CoaxialDriveComponent
 azimuth_component_class = Falcon500CoaxialAzimuthComponent
 gyro_component_class = DummyGyro
-absolute_encoder_class = AbsoluteDutyCycleEncoder
+absolute_encoder_class = AbsoluteCANCoder
 
 # For the drive/azimuth classes selected, set the parameters which DO NOT vary
 # between the modules.  (Look at the Parameters data class for the
