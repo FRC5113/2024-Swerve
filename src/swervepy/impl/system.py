@@ -9,7 +9,12 @@ class CoaxialSwerveModule(SwerveModule):
     last_commanded_drive_velocity: float = 0
     last_commanded_azimuth_angle = Rotation2d.fromDegrees(0)
 
-    def __init__(self, drive: CoaxialDriveComponent, azimuth: CoaxialAzimuthComponent, placement: Translation2d):
+    def __init__(
+        self,
+        drive: CoaxialDriveComponent,
+        azimuth: CoaxialAzimuthComponent,
+        placement: Translation2d,
+    ):
         super().__init__()
 
         self._drive = drive

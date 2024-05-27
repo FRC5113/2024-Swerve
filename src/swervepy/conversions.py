@@ -1,11 +1,13 @@
 """
 A collection of methods for converting between native Falcon 500 units and standard units, like metres.
 """
+
 import math
 
 import wpimath.geometry
 
-FALCON_CPR = 2048
+# cheat way to get conversions to have falcon units as revolutions
+FALCON_CPR = 1  # 2048
 DEGREES_PER_ROTATION = 360
 RADS_PER_ROTATION = 2 * math.pi
 
@@ -21,16 +23,16 @@ def degrees_to_falcon(degrees: wpimath.geometry.Rotation2d, gear_ratio: float) -
 
 
 def falcon_to_rpm(velocity: float, gear_ratio: float) -> float:
-    # Falcon velocity is in units/100ms, so multiplying by 600 changes to units/min.
-    motor_rpm = velocity * (600 / FALCON_CPR)
+    # note: phoenix5 reports falcon velocity in units per 100 ms
+    motor_rpm = velocity * (60 / FALCON_CPR)
     mechanism_rpm = motor_rpm / gear_ratio
     return mechanism_rpm
 
 
 def rpm_to_falcon(rpm: float, gear_ratio: float) -> float:
+    # note: phoenix5 reports falcon velocity in units per 100 ms
     motor_rpm = rpm * gear_ratio
-    # Falcon velocity is in units/100ms, so multiplying by 600 changes to units/min.
-    ticks = motor_rpm * (FALCON_CPR / 600)
+    ticks = motor_rpm * (FALCON_CPR / 60)
     return ticks
 
 

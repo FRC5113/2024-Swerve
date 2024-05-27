@@ -1,8 +1,7 @@
 import copy
 from dataclasses import dataclass
 
-import phoenix5
-import phoenix5.sensors
+import phoenix6
 import rev
 from pint import Quantity
 from wpimath.controller import SimpleMotorFeedforwardMeters
@@ -29,7 +28,7 @@ class Falcon500CoaxialDriveComponent(CoaxialDriveComponent):
         peak_current_limit: int
         peak_current_duration: float
 
-        neutral_mode: phoenix5.NeutralMode
+        neutral_mode: phoenix6.signals.NeutralModeValue
 
         kP: float
         kI: float
@@ -48,23 +47,40 @@ class Falcon500CoaxialDriveComponent(CoaxialDriveComponent):
             return data
 
         # noinspection PyPep8Naming
-        def create_TalonFX_config(self) -> phoenix5.TalonFXConfiguration:
-            motor_config = phoenix5.TalonFXConfiguration()
+        def create_TalonFX_config(self) -> phoenix6.configs.TalonFXConfiguration:
+            motor_config = phoenix6.configs.TalonFXConfiguration()
 
-            supply_limit = phoenix5.SupplyCurrentLimitConfiguration(
-                True,
-                self.continuous_current_limit,
-                self.peak_current_limit,
-                self.peak_current_duration,
+            supply_limit = phoenix6.configs.CurrentLimitsConfigs()
+            supply_limit.supply_current_limit_enable = True
+            supply_limit.supply_current_limit = self.continuous_current_limit
+            supply_limit.supply_current_threshold = self.peak_current_limit
+            supply_limit.supply_time_threshold = self.peak_current_duration
+
+            motor_config.slot0.k_p = self.kP
+            motor_config.slot0.k_i = self.kI
+            motor_config.slot0.k_d = self.kD
+            motor_config.slot0.k_s = self.kS
+            motor_config.slot0.k_v = self.kV
+            motor_config.slot0.k_a = self.kA
+            motor_config.current_limits = supply_limit
+            # motor_config.initializationStrategy = phoenix5.sensors.SensorInitializationStrategy.BootToZero
+            # the above line was deprecated in phoenix6 - might cause an issue???
+            motor_config.open_loop_ramps.duty_cycle_open_loop_ramp_period = (
+                self.open_loop_ramp_rate
+            )
+            motor_config.closed_loop_ramps.duty_cycle_closed_loop_ramp_period = (
+                self.closed_loop_ramp_rate
             )
 
-            motor_config.slot0.kP = self.kP
-            motor_config.slot0.kI = self.kI
-            motor_config.slot0.kD = self.kD
-            motor_config.supplyCurrLimit = supply_limit
-            motor_config.initializationStrategy = phoenix5.sensors.SensorInitializationStrategy.BootToZero
-            motor_config.openloopRamp = self.open_loop_ramp_rate
-            motor_config.closedloopRamp = self.closed_loop_ramp_rate
+            if self.invert_motor:
+                motor_config.motor_output.inverted = (
+                    phoenix6.signals.InvertedValue.CLOCKWISE_POSITIVE
+                )
+            else:
+                motor_config.motor_output.inverted = (
+                    phoenix6.signals.InvertedValue.COUNTER_CLOCKWISE_POSITIVE
+                )
+            motor_config.motor_output.neutral_mode = self.neutral_mode
 
             return motor_config
 
@@ -73,64 +89,69 @@ class Falcon500CoaxialDriveComponent(CoaxialDriveComponent):
 
         try:
             # Unpack tuple of motor id and CAN bus id into TalonFX constructor
-            self._motor = phoenix5.TalonFX(*id_)
+            self._motor = phoenix6.hardware.TalonFX(*id_)
         except TypeError:
             # Only an int was provided for id_
-            self._motor = phoenix5.TalonFX(id_)
+            self._motor = phoenix6.hardware.TalonFX(id_)
 
         self._config()
         self.reset()
 
-        self._feedforward = SimpleMotorFeedforwardMeters(parameters.kS, parameters.kV, parameters.kA)
+        self._feedforward = SimpleMotorFeedforwardMeters(
+            parameters.kS, parameters.kV, parameters.kA
+        )
 
     def _config(self):
         settings = self._params.create_TalonFX_config()
-        self._motor.configFactoryDefault()
-        self._motor.configAllSettings(settings)
-        self._motor.setInverted(self._params.invert_motor)
-        self._motor.setNeutralMode(self._params.neutral_mode)
+        self._motor.configurator.apply(settings)
 
     def follow_velocity_open(self, velocity: float):
         percent_out = velocity / self._params.max_speed
-        self._motor.set(phoenix5.ControlMode.PercentOutput, percent_out)
+        duty_cycle_out = phoenix6.controls.DutyCycleOut(percent_out)
+        self._motor.set_control(duty_cycle_out)
 
     def follow_velocity_closed(self, velocity: float):
         converted_velocity = conversions.mps_to_falcon(
             velocity, self._params.wheel_circumference, self._params.gear_ratio
         )
-        self._motor.set(
-            phoenix5.ControlMode.Velocity,
-            converted_velocity,
-            phoenix5.DemandType.ArbitraryFeedForward,
-            self._feedforward.calculate(velocity),
-        )
+        # self._motor.set(
+        #     phoenix5.ControlMode.Velocity,
+        #     converted_velocity,
+        #     phoenix5.DemandType.ArbitraryFeedForward,
+        #     self._feedforward.calculate(velocity),
+        # )
+        # might have been implelemted incorrectly
+        velocity_duty_cycle = phoenix6.controls.VelocityDutyCycle(converted_velocity)
+        self._motor.set_control(velocity_duty_cycle)
 
     def set_voltage(self, volts: float):
         percent_output = volts / self._motor.getBusVoltage()
-        self._motor.set(phoenix5.ControlMode.PercentOutput, percent_output)
+        duty_cycle_out = phoenix6.controls.DutyCycleOut(percent_output)
+        self._motor.set_control(duty_cycle_out)
 
     def reset(self):
-        self._motor.setSelectedSensorPosition(0)
+        self._motor.set_position(0)
 
     @property
     def velocity(self) -> float:
         return conversions.falcon_to_mps(
-            self._motor.getSelectedSensorVelocity(),
+            self._motor.get_velocity().value,
             self._params.wheel_circumference,
             self._params.gear_ratio,
         )
 
     @property
     def distance(self) -> float:
+        # consider performing latency adjustment
         return conversions.falcon_to_metres(
-            self._motor.getSelectedSensorPosition(),
+            self._motor.get_position().value,
             self._params.wheel_circumference,
             self._params.gear_ratio,
         )
 
     @property
     def voltage(self) -> float:
-        return self._motor.getMotorOutputVoltage()
+        return self._motor.get_motor_voltage().value
 
 
 class Falcon500CoaxialAzimuthComponent(CoaxialAzimuthComponent):
@@ -146,7 +167,7 @@ class Falcon500CoaxialAzimuthComponent(CoaxialAzimuthComponent):
         peak_current_limit: int
         peak_current_duration: float
 
-        neutral_mode: phoenix5.NeutralMode
+        neutral_mode: phoenix6.signals.NeutralModeValue
 
         kP: float
         kI: float
@@ -160,22 +181,30 @@ class Falcon500CoaxialAzimuthComponent(CoaxialAzimuthComponent):
             return data
 
         # noinspection PyPep8Naming
-        def create_TalonFX_config(self) -> phoenix5.TalonFXConfiguration:
-            motor_config = phoenix5.TalonFXConfiguration()
+        def create_TalonFX_config(self) -> phoenix6.configs.TalonFXConfiguration:
+            motor_config = phoenix6.configs.TalonFXConfiguration()
 
-            supply_limit = phoenix5.SupplyCurrentLimitConfiguration(
-                True,
-                self.continuous_current_limit,
-                self.peak_current_limit,
-                self.peak_current_duration,
-            )
+            supply_limit = phoenix6.configs.CurrentLimitsConfigs()
+            supply_limit.supply_current_limit_enable = True
+            supply_limit.supply_current_limit = self.continuous_current_limit
+            supply_limit.supply_current_threshold = self.peak_current_limit
+            supply_limit.supply_time_threshold = self.peak_current_duration
 
-            motor_config.slot0.kP = self.kP
-            motor_config.slot0.kI = self.kI
-            motor_config.slot0.kD = self.kD
-            motor_config.supplyCurrLimit = supply_limit
-            motor_config.initializationStrategy = phoenix5.sensors.SensorInitializationStrategy.BootToZero
-            motor_config.closedloopRamp = self.ramp_rate
+            motor_config.slot0.k_p = self.kP
+            motor_config.slot0.k_i = self.kI
+            motor_config.slot0.k_d = self.kD
+            motor_config.current_limits = supply_limit
+            # motor_config.initializationStrategy = phoenix5.sensors.SensorInitializationStrategy.BootToZero
+
+            if self.invert_motor:
+                motor_config.motor_output.inverted = (
+                    phoenix6.signals.InvertedValue.CLOCKWISE_POSITIVE
+                )
+            else:
+                motor_config.motor_output.inverted = (
+                    phoenix6.signals.InvertedValue.COUNTER_CLOCKWISE_POSITIVE
+                )
+            motor_config.motor_output.neutral_mode = self.neutral_mode
 
             return motor_config
 
@@ -190,10 +219,10 @@ class Falcon500CoaxialAzimuthComponent(CoaxialAzimuthComponent):
 
         try:
             # Unpack tuple of motor id and CAN bus id into TalonFX constructor
-            self._motor = phoenix5.TalonFX(*id_)
+            self._motor = phoenix6.hardware.TalonFX(*id_)
         except TypeError:
             # Only an int was provided for id_
-            self._motor = phoenix5.TalonFX(id_)
+            self._motor = phoenix6.hardware.TalonFX(id_)
 
         self._absolute_encoder = absolute_encoder
         self._offset = azimuth_offset
@@ -203,27 +232,31 @@ class Falcon500CoaxialAzimuthComponent(CoaxialAzimuthComponent):
 
     def _config(self):
         settings = self._params.create_TalonFX_config()
-        self._motor.configFactoryDefault()
-        self._motor.configAllSettings(settings)
-        self._motor.setInverted(self._params.invert_motor)
-        self._motor.setNeutralMode(self._params.neutral_mode)
+        self._motor.configurator.apply(settings)
 
     def follow_angle(self, angle: Rotation2d):
         converted_angle = conversions.degrees_to_falcon(angle, self._params.gear_ratio)
-        self._motor.set(phoenix5.ControlMode.Position, converted_angle)
+        position_duty_cycle = phoenix6.controls.PositionDutyCycle(converted_angle)
+        self._motor.set_control(position_duty_cycle)
 
     def reset(self):
         absolute_position = self._absolute_encoder.absolute_position - self._offset
-        converted_position = conversions.degrees_to_falcon(absolute_position, self._params.gear_ratio)
-        self._motor.setSelectedSensorPosition(converted_position)
+        converted_position = conversions.degrees_to_falcon(
+            absolute_position, self._params.gear_ratio
+        )
+        self._motor.set_position(converted_position)
 
     @property
     def rotational_velocity(self) -> float:
-        return conversions.falcon_to_radps(self._motor.getSelectedSensorVelocity(), self._params.gear_ratio)
+        return conversions.falcon_to_radps(
+            self._motor.get_velocity().value, self._params.gear_ratio
+        )
 
     @property
     def angle(self) -> Rotation2d:
-        return conversions.falcon_to_degrees(self._motor.getSelectedSensorPosition(), self._params.gear_ratio)
+        return conversions.falcon_to_degrees(
+            self._motor.get_position().value, self._params.gear_ratio
+        )
 
 
 class NEOCoaxialDriveComponent(CoaxialDriveComponent):
@@ -267,7 +300,9 @@ class NEOCoaxialDriveComponent(CoaxialDriveComponent):
         self._config()
         self.reset()
 
-        self._feedforward = SimpleMotorFeedforwardMeters(parameters.kS, parameters.kV, parameters.kA)
+        self._feedforward = SimpleMotorFeedforwardMeters(
+            parameters.kS, parameters.kV, parameters.kA
+        )
 
     def _config(self):
         self._motor.restoreFactoryDefaults()
@@ -285,7 +320,9 @@ class NEOCoaxialDriveComponent(CoaxialDriveComponent):
         self._motor.setInverted(self._params.invert_motor)
         self._motor.setIdleMode(self._params.neutral_mode)
 
-        position_conversion_factor = self._params.wheel_circumference / self._params.gear_ratio
+        position_conversion_factor = (
+            self._params.wheel_circumference / self._params.gear_ratio
+        )
         self._encoder.setPositionConversionFactor(position_conversion_factor)
         self._encoder.setVelocityConversionFactor(position_conversion_factor / 60)
 
@@ -363,7 +400,9 @@ class NEOCoaxialAzimuthComponent(CoaxialAzimuthComponent):
 
         if isinstance(absolute_encoder, SparkMaxEncoderType):
             # Construct an AbsoluteEncoder from sensor plugged into SPARK MAX
-            self._absolute_encoder = SparkMaxAbsoluteEncoder(self._motor, absolute_encoder)
+            self._absolute_encoder = SparkMaxAbsoluteEncoder(
+                self._motor, absolute_encoder
+            )
         else:
             self._absolute_encoder = absolute_encoder
 
@@ -389,7 +428,9 @@ class NEOCoaxialAzimuthComponent(CoaxialAzimuthComponent):
         self._encoder.setVelocityConversionFactor(position_conversion_factor / 60)
 
     def follow_angle(self, angle: Rotation2d):
-        self._controller.setReference(angle.degrees(), rev.CANSparkMax.ControlType.kPosition)
+        self._controller.setReference(
+            angle.degrees(), rev.CANSparkMax.ControlType.kPosition
+        )
 
     def reset(self):
         absolute_position = self._absolute_encoder.absolute_position - self._offset

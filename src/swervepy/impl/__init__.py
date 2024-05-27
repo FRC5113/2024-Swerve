@@ -11,7 +11,7 @@ __all__ = [
     "NEOCoaxialAzimuthComponent",
     "AbsoluteCANCoder",
     "AbsoluteDutyCycleEncoder",
-    "PigeonGyro",
+    "NavXGyro" "PigeonGyro",
     "Pigeon2Gyro",
     "CoaxialSwerveModule",
     "SparkMaxEncoderType",
@@ -31,6 +31,7 @@ from .motor import (
 from .sensor import (
     AbsoluteCANCoder,
     AbsoluteDutyCycleEncoder,
+    NavXGyro,
     PigeonGyro,
     Pigeon2Gyro,
     SparkMaxEncoderType,

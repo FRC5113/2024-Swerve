@@ -1,5 +1,6 @@
 import enum
 
+import navx
 import phoenix5.sensors
 import rev
 import wpilib
@@ -18,7 +19,9 @@ class AbsoluteCANCoder(AbsoluteEncoder):
         except TypeError:
             self._encoder = phoenix5.sensors.CANCoder(id_)
 
-        self._encoder.configAbsoluteSensorRange(phoenix5.sensors.AbsoluteSensorRange.Unsigned_0_to_360)
+        self._encoder.configAbsoluteSensorRange(
+            phoenix5.sensors.AbsoluteSensorRange.Unsigned_0_to_360
+        )
 
         wpilib.SmartDashboard.putData(f"Absolute CANCoder {id_}", self)
 
@@ -46,6 +49,26 @@ class AbsoluteDutyCycleEncoder(AbsoluteEncoder):
 
     def reset_zero_position(self):
         self._encoder.setPositionOffset(0)
+
+
+class NavXGyro(Gyro):
+    def __init__(self, invert: bool = False):
+        super().__init__()
+
+        self._gyro = navx.AHRS.create_spi()
+        self.invert = invert
+
+        wpilib.SmartDashboard.putData("NavX IMU", self)
+
+    def zero_heading(self):
+        self._gyro.reset()
+
+    @property
+    def heading(self) -> Rotation2d:
+        yaw = self._gyro.getAngle()
+        if self.invert:
+            yaw = 360 - yaw
+        return Rotation2d.fromDegrees(yaw)
 
 
 class PigeonGyro(Gyro):
@@ -125,19 +148,25 @@ class SparkMaxAbsoluteEncoder(AbsoluteEncoder):
 
         # Two types of absolute encoders can be plugged into the SPARK MAX data port: analog and duty cycle/PWM
         if encoder_type is SparkMaxEncoderType.ANALOG:
-            self._encoder = controller.getAnalog(rev.SparkMaxAnalogSensor.Mode.kAbsolute)
+            self._encoder = controller.getAnalog(
+                rev.SparkMaxAnalogSensor.Mode.kAbsolute
+            )
 
             # Analog encoders output from 0V - 3.3V
             # Change from voltage to degrees
             self._encoder.setPositionConversionFactor(360 / 3.3)
         elif encoder_type is SparkMaxEncoderType.PWM:
-            self._encoder = controller.getAbsoluteEncoder(rev.SparkMaxAbsoluteEncoder.Type.kDutyCycle)
+            self._encoder = controller.getAbsoluteEncoder(
+                rev.SparkMaxAbsoluteEncoder.Type.kDutyCycle
+            )
 
             # Duty cycle encoders output from 0 to 1 by default
             # Change into degrees
             self._encoder.setPositionConversionFactor(360)
 
-        wpilib.SmartDashboard.putData(f"Absolute Encoder {controller.getDeviceId()}", self)
+        wpilib.SmartDashboard.putData(
+            f"Absolute Encoder {controller.getDeviceId()}", self
+        )
 
     @property
     def absolute_position(self) -> Rotation2d:

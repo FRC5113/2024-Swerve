@@ -10,7 +10,9 @@ from . import SendableABCMeta
 class SwerveModule(Sendable, metaclass=SendableABCMeta):
     placement: Translation2d
 
-    def desire_state(self, state: SwerveModuleState, drive_open_loop: bool, rotate_in_place: bool):
+    def desire_state(
+        self, state: SwerveModuleState, drive_open_loop: bool, rotate_in_place: bool
+    ):
         """
         Command the module to follow a speed and angle
 
@@ -22,7 +24,11 @@ class SwerveModule(Sendable, metaclass=SendableABCMeta):
         state = optimize(state, self.azimuth_angle)
 
         # Prevent rotating the module if drive speed is less than 2 cm/s to prevent feedback-loop jitter
-        angle = state.angle if rotate_in_place or abs(state.speed) > 0.02 else self.azimuth_angle
+        angle = (
+            state.angle
+            if rotate_in_place or abs(state.speed) > 0.02
+            else self.azimuth_angle
+        )
 
         self.desire_drive_velocity(state.speed, drive_open_loop)
         self.desire_azimuth_angle(angle)
@@ -132,7 +138,9 @@ def optimize(desired_state: SwerveModuleState, current_angle: Rotation2d):
     # 2) Rotate to the mirrored rotation (subtract 180) and drive at the opposite of its intended speed
     # Optimizing finds the option that requires the smallest rotation by the module
 
-    target_angle = place_in_proper_0_to_360_scope(current_angle.degrees(), desired_state.angle.degrees())
+    target_angle = place_in_proper_0_to_360_scope(
+        current_angle.degrees(), desired_state.angle.degrees()
+    )
     target_speed = desired_state.speed
     delta = target_angle - current_angle.degrees()
 
