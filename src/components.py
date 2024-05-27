@@ -9,11 +9,15 @@ all that here instead of in the container.py module.
 from constants import PHYS, MECH, ELEC, OP, SW
 from swervepy.impl import (
     # Replace these classes with the ones that apply to your robot
-    NavXGyro,
+    
     AbsoluteCANCoder,
     CoaxialSwerveModule,
     Falcon500CoaxialDriveComponent,
     Falcon500CoaxialAzimuthComponent,
+)
+
+from swervepy.abstract import (
+    NavXGyro,
 )
 
 # Define which components you're using (e.g. which motors you're using)
