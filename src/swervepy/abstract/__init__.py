@@ -10,7 +10,6 @@ __all__ = [
     "Gyro",
     "AbsoluteEncoder",
     "SwerveModule",
-    "NavXGyro",
 ]
 
 from abc import ABCMeta
@@ -22,5 +21,5 @@ class SendableABCMeta(ABCMeta, type(Sendable)):
 
 
 from .motor import CoaxialDriveComponent, CoaxialAzimuthComponent
-from .sensor import Gyro, AbsoluteEncoder,NavXGyro
+from .sensor import Gyro, AbsoluteEncoder
 from .system import SwerveModule

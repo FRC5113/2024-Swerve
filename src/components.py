@@ -12,12 +12,9 @@ from swervepy.impl import (
     
     AbsoluteCANCoder,
     CoaxialSwerveModule,
+    NavXGyro,
     Falcon500CoaxialDriveComponent,
     Falcon500CoaxialAzimuthComponent,
-)
-
-from swervepy.abstract import (
-    NavXGyro,
 )
 
 # Define which components you're using (e.g. which motors you're using)

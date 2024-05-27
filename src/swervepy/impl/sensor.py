@@ -1,5 +1,6 @@
 import enum
 
+import navx
 import phoenix6
 import phoenix5.sensors
 import rev
@@ -19,15 +20,17 @@ class AbsoluteCANCoder(AbsoluteEncoder):
         except TypeError:
             self._encoder = phoenix6.hardware.CANcoder(id_)
 
-        phoenix6.signals.AbsoluteSensorRangeValue(
+        config = phoenix6.configs.CANcoderConfiguration()
+        config.magnet_sensor.absolute_sensor_range = (
             phoenix6.signals.AbsoluteSensorRangeValue.UNSIGNED_0_TO1
         )
+        self._encoder.configurator.apply(config)
 
         wpilib.SmartDashboard.putData(f"Absolute CANCoder {id_}", self)
 
     @property
     def absolute_position(self) -> Rotation2d:
-        return Rotation2d.fromDegrees(self._encoder.get_absolute_position())
+        return Rotation2d.fromDegrees(self._encoder.get_absolute_position().value * 360)
 
 
 class AbsoluteDutyCycleEncoder(AbsoluteEncoder):
@@ -50,8 +53,24 @@ class AbsoluteDutyCycleEncoder(AbsoluteEncoder):
     def reset_zero_position(self):
         self._encoder.setPositionOffset(0)
 
+class NavXGyro(Gyro):
+    def __init__(self, invert: bool = False):
+        super().__init__()
 
+        self._gyro = navx.AHRS.create_spi()
+        self.invert = invert
 
+        wpilib.SmartDashboard.putData("NavX IMU", self)
+
+    def zero_heading(self):
+        self._gyro.reset()
+
+    @property
+    def heading(self) -> Rotation2d:
+        yaw = self._gyro.getAngle()
+        if self.invert:
+            yaw = 360 - yaw
+        return Rotation2d.fromDegrees(yaw)
 
 class PigeonGyro(Gyro):
     def __init__(self, id_: int, invert: bool = False):

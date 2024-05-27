@@ -47,22 +47,3 @@ class AbsoluteEncoder(Sendable, metaclass=SendableABCMeta):
             lambda: self.absolute_position.degrees(),
             lambda _: None,
         )
-
-class NavXGyro(Gyro):
-    def __init__(self, invert: bool = False):
-        super().__init__()
-
-        self._gyro = navx.AHRS.create_spi()
-        self.invert = invert
-
-        wpilib.SmartDashboard.putData("NavX IMU", self)
-
-    def zero_heading(self):
-        self._gyro.reset()
-
-    @property
-    def heading(self) -> Rotation2d:
-        yaw = self._gyro.getAngle()
-        if self.invert:
-            yaw = 360 - yaw
-        return Rotation2d.fromDegrees(yaw)
