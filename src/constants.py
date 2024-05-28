@@ -31,7 +31,7 @@ mech_data = {
     "swerve_module_propulsion_gearing_ratio": 6.75,  # SDS Mk4i L2
     "swerve_module_steering_gearing_ratio": 150 / 7,  # SDS Mk4i
     "propulsion_motor_inverted": False,
-    "steering_motor_inverted": False,
+    "steering_motor_inverted": True,
 }
 MECH = namedtuple("Data", mech_data.keys())(**mech_data)
 
@@ -103,7 +103,7 @@ sw_data = {
     # field_relative: True if "forward" means "down the field"; False if
     # "forward" means "in the direction the robot is facing".  A True value
     # requires a (non-Dummy) gyro.
-    "field_relative": False,
+    "field_relative": True,
     # drive_open_loop: True if we're not using PID control *for velocity targeting*,
     # i.e. when a target velocity is calculated, do we use the corresponding
     # CoaxialDriveComponent's follow_velocity_open() method (set motor output
